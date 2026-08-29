@@ -30,6 +30,11 @@ menuconfig LED_SUBSYSTEM
             default 500 if BLINK_FAST
             default 0
 
+        config APP_HEARTBEAT_PERIOD_MS
+            int "App Heartbeat Period (ms)"
+            default 500
+            range 100 2000
+
         menuconfig LED_ADVANCED_SETTINGS
             bool "Advanced LED settings"
             default n
