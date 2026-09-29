@@ -1,5 +1,5 @@
-identifier: mgm260p_ek2713a
-name: xGM260P Explorer Kit (MGM260P-EK2713A, BRD2713A)
+identifier: rh_temp_lux_sensor
+name: RH Temperature and Light Sensor Board
 type: mcu
 arch: arm
 ram: 512
@@ -8,17 +8,15 @@ toolchain:
   - zephyr
   - gnuarmemb
 supported:
-  - adc
   - bluetooth
-  - comparator
   - counter
-  - dac
-  - dma
   - entropy
   - flash
   - gpio
-  - pwm
-  - spi
+  - i2c
+  - input
+  - rtc
+  - sensor
   - uart
   - watchdog
-vendor: silabs
+vendor: Malagon

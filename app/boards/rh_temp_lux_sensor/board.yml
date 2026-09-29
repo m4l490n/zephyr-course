@@ -1,6 +1,6 @@
 boards:
   - name: rh_temp_lux_sensor
     full_name: RH Temperature and Light Sensor Board
-    vendor: mala90n
+    vendor: malagon
     socs:
       - name: mgm260pd32vna

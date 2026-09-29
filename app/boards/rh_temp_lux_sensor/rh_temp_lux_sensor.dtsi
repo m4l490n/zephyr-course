@@ -1,12 +1,5 @@
-/*
- * Copyright The Zephyr Project Contributors
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
-#include <zephyr/dt-bindings/adc/silabs-adc.h>
+#include <zephyr/dt-bindings/i2c/i2c.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
-#include <zephyr/dt-bindings/pwm/pwm.h>
 #include <zephyr/dt-bindings/regulator/silabs_dcdc.h>
 #include "rh_temp_lux_sensor-pinctrl.dtsi"
 
@@ -21,118 +14,67 @@
 	};
 
 	aliases {
-		led0 = &led0;
+		led0 = &red_led;
 		led1 = &green_led;
-		pwm-led0 = &pwm_led0;
-		pwm-led1 = &pwm_led1;
-		sw0 = &button0;
+		led2 = &blue_led;
 		sw1 = &button1;
-		watchdog0 = &wdog0;
-
-		/* If enabled, MCUboot uses this for recovery mode entrance */
-		mcuboot-led0 = &led0;
-		mcuboot-button0 = &button0;
+		sw2 = &button2;
+		light = &veml6030;
+		temp = &sht40;
+		rtc = &ds1308;
 	};
 
+	/*
+	 * BTN_1 (PA05) and BTN_2 (PC00) are active low and handled through
+	 * GPIO external interrupts by the gpio-keys driver.
+	 */
 	buttons {
 		compatible = "gpio-keys";
 
-		button0: button_0 {
-			gpios = <&gpiob 0 GPIO_ACTIVE_LOW>;
+		button1: button_1 {
+			label = "BTN_1";
+			gpios = <&gpioa 5 (GPIO_ACTIVE_LOW)>;
 			zephyr,code = <INPUT_KEY_0>;
 		};
 
-		button1: button_1 {
-			gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
+		button2: button_2 {
+			label = "BTN_2";
+			gpios = <&gpioc 0 (GPIO_ACTIVE_LOW)>;
 			zephyr,code = <INPUT_KEY_1>;
 		};
 	};
 
+	/* Active low (common anode) RGB LED */
 	leds {
 		compatible = "gpio-leds";
 
-		led0: led_0 {
-			gpios = <&gpioc 3 GPIO_ACTIVE_LOW>;
+		red_led: led_red {
+			label = "LED_RED";
+			gpios = <&gpioc 5 GPIO_ACTIVE_LOW>;
 		};
 
-		green_led: green_led {
+		green_led: led_green {
+			label = "LED_GREEN";
 			gpios = <&gpioc 4 GPIO_ACTIVE_LOW>;
 		};
-	};
 
-	mikrobus_header: mikrobus-connector {
-		compatible = "mikro-bus";
-		#gpio-cells = <2>;
-		gpio-map-mask = <0xffffffff 0>;
-		gpio-map-pass-thru = <0 GPIO_DT_FLAGS_MASK>;
-		gpio-map = <0 0 &gpiod 2 0>,  /* AN   */
-			   <1 0 &gpioc 6 0>,  /* RST  */
-			   <2 0 &gpioc 4 0>,  /* CS   */
-			   <3 0 &gpioc 3 0>,  /* SCK  */
-			   <4 0 &gpioc 1 0>,  /* MISO */
-			   <5 0 &gpioc 2 0>,  /* MOSI */
-			   <6 0 &gpioa 7 0>,  /* PWM  */
-			   <7 0 &gpioc 0 0>,  /* INT  */
-			   <8 0 &gpioa 5 0>,  /* RX   */
-			   <9 0 &gpioa 4 0>,  /* TX   */
-			   <10 0 &gpiod 5 0>, /* SCL  */
-			   <11 0 &gpiod 7 0>; /* SDA  */
-	};
-
-	pwmleds {
-		compatible = "pwm-leds";
-
-		pwm_led0: pwm_led_0 {
-			pwms = <&timer0_pwm 0 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
-		};
-
-		pwm_led1: pwm_led_1 {
-			pwms = <&timer0_pwm 1 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
+		blue_led: led_blue {
+			label = "LED_BLUE";
+			gpios = <&gpioc 3 GPIO_ACTIVE_LOW>;
 		};
 	};
 
-	qwiic_connector: stemma-qt-connector {
-		compatible = "stemma-qt-connector";
-		#gpio-cells = <2>;
-		gpio-map-mask = <0xffffffff 0>;
-		gpio-map-pass-thru = <0 GPIO_DT_FLAGS_MASK>;
-		gpio-map = <0 0 &gpiod 5 0>, /* SCL */
-			   <1 0 &gpiod 7 0>; /* SDA */
-	};
-
-	mikrobus_adc: zephyr,user {
-		io-channels = <&adc0 0>;
-	};
-};
-
-&timer0 {
-	status = "okay";
-
-	timer0_pwm: pwm {
-		pinctrl-0 = <&timer0_default>;
-		pinctrl-names = "default";
-		status = "okay";
-	};
-};
-
-&timer1 {
-	status = "okay";
-
-	zephyr_pwm: timer1_pwm: pwm {
-		pinctrl-0 = <&timer1_default>;
-		pinctrl-names = "default";
-		status = "okay";
+	zephyr,user {
+		/* 1 Hz square wave from the DS1308 SQW/OUT pin (open drain) */
+		rtc-1hz-gpios = <&gpiod 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+		/* Test points */
+		tp1-gpios = <&gpioa 4 GPIO_ACTIVE_HIGH>;
+		tp2-gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
 	};
 };
 
 &cpu0 {
 	clock-frequency = <DT_FREQ_M(78)>;
-};
-
-&itm {
-	pinctrl-0 = <&itm_default>;
-	pinctrl-names = "default";
-	swo-ref-frequency = <DT_FREQ_M(78)>;
 };
 
 &dcdc {
@@ -151,6 +93,7 @@
 	dpll-n = <3839>;
 };
 
+/* 32.768 kHz crystal X1 on PD00/PD01 */
 &lfxo {
 	ctune = <25>;
 	precision = <50>;
@@ -173,43 +116,42 @@
 	clocks = <&lfxo>;
 };
 
-&wdog0clk {
-	clocks = <&lfxo>;
-};
-
-&wdog1clk {
-	clocks = <&lfxo>;
-};
-
+/* Debug UART */
 &usart0 {
+	current-speed = <115200>;
 	pinctrl-0 = <&usart0_default>;
 	pinctrl-names = "default";
 	status = "okay";
 };
 
-&usart1 {
-	pinctrl-0 = <&usart1_default>;
-	pinctrl-names = "default";
-	status = "disabled";
-};
-
-&eusart1 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	cs-gpios = <&gpioc 4 GPIO_ACTIVE_LOW>;
-	pinctrl-0 = <&eusart1_default>;
-	pinctrl-names = "default";
-	status = "disabled";
-};
-
 &i2c0 {
 	pinctrl-0 = <&i2c0_default>;
 	pinctrl-names = "default";
-	status = "disabled";
-};
-
-&wdog0 {
+	clock-frequency = <I2C_BITRATE_STANDARD>;
 	status = "okay";
+
+	/* VEML6030 ambient light sensor (ADDR pin low -> 0x10), VEML7700 compatible */
+	veml6030: veml6030@10 {
+		compatible = "vishay,veml7700";
+		reg = <0x10>;
+		status = "okay";
+	};
+
+	/* SHT40I-AD1B humidity and temperature sensor */
+	sht40: sht40@44 {
+		compatible = "sensirion,sht4x";
+		reg = <0x44>;
+		repeatability = <2>;
+		status = "okay";
+	};
+
+	/* DS1308 RTC, register compatible with the DS1307 */
+	ds1308: ds1308@68 {
+		compatible = "maxim,ds1307";
+		reg = <0x68>;
+		sqw-frequency = <1>;
+		status = "okay";
+	};
 };
 
 &gpio {
@@ -233,32 +175,6 @@
 };
 
 &sysrtc0 {
-	status = "okay";
-};
-
-&adc0 {
-	pinctrl-0 = <&iadc0_default>;
-	pinctrl-names = "default";
-	#address-cells = <1>;
-	#size-cells = <0>;
-	status = "okay";
-
-	channel@0 {
-		reg = <0>;
-		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
-		zephyr,gain = "ADC_GAIN_1";
-		zephyr,input-positive = <IADC_INPUT_PD2>;
-		zephyr,reference = "ADC_REF_VDD_1";
-		zephyr,resolution = <12>;
-		zephyr,vref-mv = <3300>;
-	};
-};
-
-&vdac0 {
-	status = "okay";
-};
-
-&vdac1 {
 	status = "okay";
 };
 
@@ -298,13 +214,3 @@
 		};
 	};
 };
-
-mikrobus_i2c: &i2c0 {};
-
-mikrobus_spi: &eusart1 {};
-
-mikrobus_uart: &usart1 {};
-
-zephyr_i2c: &i2c0 {};
-
-zephyr_spi: &eusart1 {};
